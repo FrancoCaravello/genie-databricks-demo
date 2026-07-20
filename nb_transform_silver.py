@@ -1,4 +1,21 @@
 # Databricks notebook source
+# DBTITLE 1,Environment Setup
+import json
+
+_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
+with open(_conf_path) as f:
+    _env = json.load(f)
+
+catalog     = _env["catalog"]
+schema      = _env["schema"]
+
+spark.sql(f"USE CATALOG `{catalog}`")
+spark.sql(f"USE SCHEMA `{schema}`")
+
+print(f"✓ Environment : {catalog}.{schema}")
+
+# COMMAND ----------
+
 # DBTITLE 1,Silver Layer: Clean & Type Sales Transactions
 # MAGIC %md
 # MAGIC # Silver Layer: Clean & Type Sales Transactions
