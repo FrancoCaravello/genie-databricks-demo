@@ -31,6 +31,30 @@ print(f"✓ Volume path : {volume_path}")
 
 # COMMAND ----------
 
+# DBTITLE 1,Environment Setup
+import json
+
+# Load environment config from conf/env.json (differs per Git branch)
+_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
+with open(_conf_path) as f:
+    _env = json.load(f)
+
+catalog     = _env["catalog"]
+schema      = _env["schema"]
+volume_path = _env["volume_path"]
+
+# Set default catalog and schema for all %sql cells in this notebook
+spark.sql(f"USE CATALOG `{catalog}`")
+spark.sql(f"USE SCHEMA `{schema}`")
+
+# Expose volume_path as a widget for use in %sql cells
+dbutils.widgets.text("volume_path", volume_path)
+
+print(f"✓ Environment : {catalog}.{schema}")
+print(f"✓ Volume path : {volume_path}")
+
+# COMMAND ----------
+
 # DBTITLE 1,Create Bronze Table
 # MAGIC %sql
 # MAGIC CREATE OR REPLACE TABLE bronze_sales_transactions
