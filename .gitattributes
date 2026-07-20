@@ -1,0 +1,3 @@
+# conf/env.json is intentionally different per branch.
+# Never auto-merge this file — always resolve manually by keeping the target branch version.
+conf/env.json merge=ours
