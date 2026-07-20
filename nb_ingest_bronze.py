@@ -11,9 +11,33 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Environment Setup
+import json
+
+# Load environment config from conf/env.json (differs per Git branch)
+_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
+with open(_conf_path) as f:
+    _env = json.load(f)
+
+catalog     = _env["catalog"]
+schema      = _env["schema"]
+volume_path = _env["volume_path"]
+
+# Set default catalog and schema for all %sql cells in this notebook
+spark.sql(f"USE CATALOG `{catalog}`")
+spark.sql(f"USE SCHEMA `{schema}`")
+
+# Expose volume_path as a widget for use in %sql cells
+dbutils.widgets.text("volume_path", volume_path)
+
+print(f"✓ Environment : {catalog}.{schema}")
+print(f"✓ Volume path : {volume_path}")
+
+# COMMAND ----------
+
 # DBTITLE 1,Create Bronze Table
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE genie_demo.de_demo.bronze_sales_transactions
+# MAGIC CREATE OR REPLACE TABLE bronze_sales_transactions
 # MAGIC COMMENT 'Bronze layer: raw sales transactions ingested from CSV. All columns preserved as strings with ingestion metadata.'
 # MAGIC AS
 # MAGIC SELECT
@@ -21,52 +45,52 @@
 # MAGIC   _metadata.file_path AS _source_file_path,
 # MAGIC   current_timestamp() AS _ingested_at
 # MAGIC FROM read_files(
-# MAGIC   '/Volumes/genie_demo/de_demo/raw_files/sales_transactions.csv',
+# MAGIC   '${volume_path}/sales_transactions.csv',
 # MAGIC   format => 'csv',
 # MAGIC   header => true,
 # MAGIC   inferColumnTypes => false
 # MAGIC );
 # MAGIC
 # MAGIC -- Column comments
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN order_id COMMENT 'Raw order identifier from source CSV';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN order_date COMMENT 'Raw order date string (YYYY-MM-DD format, not yet cast to DATE)';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN customer_id COMMENT 'Raw customer identifier from source CSV';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN product_name COMMENT 'Product name as provided in the source file';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN category COMMENT 'Product category (Electronics, Clothing, Home & Kitchen, Sports, Books)';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN quantity COMMENT 'Raw quantity string (to be cast to INT at silver layer)';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN unit_price COMMENT 'Raw unit price string (to be cast to DECIMAL at silver layer)';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN discount_pct COMMENT 'Raw discount percentage string (0-30, to be cast to DECIMAL at silver layer)';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN payment_method COMMENT 'Payment method used (Credit Card, Debit Card, PayPal, Bank Transfer, Cash)';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN region COMMENT 'Geographic sales region (North, South, East, West, Central)';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN order_status COMMENT 'Order lifecycle status (Completed, Cancelled, Returned, Pending)';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN _source_file_path COMMENT 'Ingestion metadata: full path of the source file in the UC Volume';
-# MAGIC ALTER TABLE genie_demo.de_demo.bronze_sales_transactions ALTER COLUMN _ingested_at COMMENT 'Ingestion metadata: timestamp when the row was loaded into the bronze table';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN order_id COMMENT 'Raw order identifier from source CSV';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN order_date COMMENT 'Raw order date string (YYYY-MM-DD format, not yet cast to DATE)';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN customer_id COMMENT 'Raw customer identifier from source CSV';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN product_name COMMENT 'Product name as provided in the source file';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN category COMMENT 'Product category (Electronics, Clothing, Home & Kitchen, Sports, Books)';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN quantity COMMENT 'Raw quantity string (to be cast to INT at silver layer)';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN unit_price COMMENT 'Raw unit price string (to be cast to DECIMAL at silver layer)';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN discount_pct COMMENT 'Raw discount percentage string (0-30, to be cast to DECIMAL at silver layer)';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN payment_method COMMENT 'Payment method used (Credit Card, Debit Card, PayPal, Bank Transfer, Cash)';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN region COMMENT 'Geographic sales region (North, South, East, West, Central)';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN order_status COMMENT 'Order lifecycle status (Completed, Cancelled, Returned, Pending)';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN _source_file_path COMMENT 'Ingestion metadata: full path of the source file in the UC Volume';
+# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN _ingested_at COMMENT 'Ingestion metadata: timestamp when the row was loaded into the bronze table';
 
 # COMMAND ----------
 
 # DBTITLE 1,Validate Row Count
 # MAGIC %sql
 # MAGIC SELECT count(*) AS row_count
-# MAGIC FROM genie_demo.de_demo.bronze_sales_transactions;
+# MAGIC FROM bronze_sales_transactions;
 
 # COMMAND ----------
 
 # DBTITLE 1,Inspect Schema
 # MAGIC %sql
-# MAGIC DESCRIBE TABLE genie_demo.de_demo.bronze_sales_transactions;
+# MAGIC DESCRIBE TABLE bronze_sales_transactions;
 
 # COMMAND ----------
 
 # DBTITLE 1,Sample Rows
 # MAGIC %sql
-# MAGIC SELECT * FROM genie_demo.de_demo.bronze_sales_transactions LIMIT 10;
+# MAGIC SELECT * FROM bronze_sales_transactions LIMIT 10;
 
 # COMMAND ----------
 
 # DBTITLE 1,Status Distribution
 # MAGIC %sql
 # MAGIC SELECT order_status, count(*) AS row_count
-# MAGIC FROM genie_demo.de_demo.bronze_sales_transactions
+# MAGIC FROM bronze_sales_transactions
 # MAGIC GROUP BY order_status
 # MAGIC ORDER BY row_count DESC;
 

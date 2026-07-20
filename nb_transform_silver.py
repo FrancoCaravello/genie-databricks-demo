@@ -22,9 +22,29 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Environment Setup
+import json
+
+# Load environment config from conf/env.json (differs per Git branch)
+_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
+with open(_conf_path) as f:
+    _env = json.load(f)
+
+catalog     = _env["catalog"]
+schema      = _env["schema"]
+volume_path = _env["volume_path"]
+
+# Set default catalog and schema for all %sql cells in this notebook
+spark.sql(f"USE CATALOG `{catalog}`")
+spark.sql(f"USE SCHEMA `{schema}`")
+
+print(f"✓ Environment : {catalog}.{schema}")
+
+# COMMAND ----------
+
 # DBTITLE 1,Create Silver Table
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE genie_demo.de_demo.silver_sales_transactions
+# MAGIC CREATE OR REPLACE TABLE silver_sales_transactions
 # MAGIC COMMENT 'Silver layer: cleaned and typed sales transactions with computed revenue columns. Sourced from bronze layer.'
 # MAGIC AS
 # MAGIC SELECT
@@ -48,34 +68,34 @@
 # MAGIC   -- Ingestion metadata (carried from bronze)
 # MAGIC   _source_file_path,
 # MAGIC   _ingested_at
-# MAGIC FROM genie_demo.de_demo.bronze_sales_transactions;
+# MAGIC FROM bronze_sales_transactions;
 # MAGIC
 # MAGIC -- Column comments
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN order_id COMMENT 'Unique order identifier';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN order_date COMMENT 'Order date (cast from string to DATE)';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN customer_id COMMENT 'Customer identifier';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN product_name COMMENT 'Product name (trimmed)';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN category COMMENT 'Product category: Electronics, Clothing, Home & Kitchen, Sports, Books';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN quantity COMMENT 'Order quantity (cast to INT)';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN unit_price COMMENT 'Unit price in USD (cast to DECIMAL(10,2))';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN discount_pct COMMENT 'Discount percentage applied (0-30)';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN payment_method COMMENT 'Payment method: Credit Card, Debit Card, PayPal, Bank Transfer, Cash';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN region COMMENT 'Geographic region: North, South, East, West, Central';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN order_status COMMENT 'Normalized order status (UPPER CASE): COMPLETED, CANCELLED, RETURNED, PENDING';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN gross_amount COMMENT 'Gross revenue: quantity * unit_price (before discount)';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN net_amount COMMENT 'Net revenue: quantity * unit_price * (1 - discount_pct/100)';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN _source_file_path COMMENT 'Ingestion metadata: source file path (carried from bronze)';
-# MAGIC ALTER TABLE genie_demo.de_demo.silver_sales_transactions ALTER COLUMN _ingested_at COMMENT 'Ingestion metadata: bronze ingestion timestamp';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN order_id COMMENT 'Unique order identifier';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN order_date COMMENT 'Order date (cast from string to DATE)';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN customer_id COMMENT 'Customer identifier';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN product_name COMMENT 'Product name (trimmed)';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN category COMMENT 'Product category: Electronics, Clothing, Home & Kitchen, Sports, Books';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN quantity COMMENT 'Order quantity (cast to INT)';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN unit_price COMMENT 'Unit price in USD (cast to DECIMAL(10,2))';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN discount_pct COMMENT 'Discount percentage applied (0-30)';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN payment_method COMMENT 'Payment method: Credit Card, Debit Card, PayPal, Bank Transfer, Cash';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN region COMMENT 'Geographic region: North, South, East, West, Central';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN order_status COMMENT 'Normalized order status (UPPER CASE): COMPLETED, CANCELLED, RETURNED, PENDING';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN gross_amount COMMENT 'Gross revenue: quantity * unit_price (before discount)';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN net_amount COMMENT 'Net revenue: quantity * unit_price * (1 - discount_pct/100)';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN _source_file_path COMMENT 'Ingestion metadata: source file path (carried from bronze)';
+# MAGIC ALTER TABLE silver_sales_transactions ALTER COLUMN _ingested_at COMMENT 'Ingestion metadata: bronze ingestion timestamp';
 
 # COMMAND ----------
 
 # DBTITLE 1,Validate Row Counts
 # MAGIC %sql
 # MAGIC SELECT
-# MAGIC   'bronze' AS layer, count(*) AS row_count FROM genie_demo.de_demo.bronze_sales_transactions
+# MAGIC   'bronze' AS layer, count(*) AS row_count FROM bronze_sales_transactions
 # MAGIC UNION ALL
 # MAGIC SELECT
-# MAGIC   'silver' AS layer, count(*) AS row_count FROM genie_demo.de_demo.silver_sales_transactions;
+# MAGIC   'silver' AS layer, count(*) AS row_count FROM silver_sales_transactions;
 
 # COMMAND ----------
 
@@ -89,14 +109,14 @@
 # MAGIC   SUM(CASE WHEN unit_price IS NULL THEN 1 ELSE 0 END) AS null_unit_price,
 # MAGIC   SUM(CASE WHEN gross_amount IS NULL THEN 1 ELSE 0 END) AS null_gross_amount,
 # MAGIC   SUM(CASE WHEN net_amount IS NULL THEN 1 ELSE 0 END) AS null_net_amount
-# MAGIC FROM genie_demo.de_demo.silver_sales_transactions;
+# MAGIC FROM silver_sales_transactions;
 
 # COMMAND ----------
 
 # DBTITLE 1,Validate Status Values
 # MAGIC %sql
 # MAGIC SELECT order_status, count(*) AS row_count
-# MAGIC FROM genie_demo.de_demo.silver_sales_transactions
+# MAGIC FROM silver_sales_transactions
 # MAGIC GROUP BY order_status
 # MAGIC ORDER BY row_count DESC;
 
@@ -114,7 +134,7 @@
 # MAGIC   -- Recalculate to verify
 # MAGIC   quantity * unit_price AS expected_gross,
 # MAGIC   ROUND(quantity * unit_price * (1 - discount_pct / 100), 2) AS expected_net
-# MAGIC FROM genie_demo.de_demo.silver_sales_transactions
+# MAGIC FROM silver_sales_transactions
 # MAGIC LIMIT 10;
 
 # COMMAND ----------
@@ -126,7 +146,7 @@
 # MAGIC   SUM(CASE WHEN unit_price <= 0 THEN 1 ELSE 0 END) AS invalid_unit_price,
 # MAGIC   SUM(CASE WHEN discount_pct < 0 OR discount_pct > 100 THEN 1 ELSE 0 END) AS invalid_discount,
 # MAGIC   SUM(CASE WHEN net_amount < 0 THEN 1 ELSE 0 END) AS negative_net_amount
-# MAGIC FROM genie_demo.de_demo.silver_sales_transactions;
+# MAGIC FROM silver_sales_transactions;
 
 # COMMAND ----------
 
