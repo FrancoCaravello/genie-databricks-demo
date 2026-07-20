@@ -102,9 +102,9 @@ Each branch has a `conf/env.json` that tells the notebooks which catalog to use:
 
 ```json
 {
-  "catalog": "genie_demo_qas",
+  "catalog": "genie_demo_prd",
   "schema": "de_demo",
-  "volume_path": "/Volumes/genie_demo_qas/de_demo/raw_files"
+  "volume_path": "/Volumes/genie_demo_prd/de_demo/raw_files"
 }
 ```
 
@@ -149,8 +149,8 @@ In a production setup, MODIFY on QAS/PRD would be restricted to a dedicated serv
 
 ## How to Run
 
-1. Open the `genie_demo_medallion_qas` job
+1. Open the `genie_demo_medallion_prd` job
 2. Click **Run now**
 3. Monitor the 4 tasks: `ingest_bronze → transform_silver → build_gold → validate`
 4. If `validate` passes, all 5 assertions are green
-5. Check the tables at `genie_demo_qas.de_demo.*`
+5. Check the tables at `genie_demo_prd.de_demo.*`
