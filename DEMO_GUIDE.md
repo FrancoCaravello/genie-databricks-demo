@@ -98,7 +98,7 @@ prd:  { "catalog": "genie_demo_prd", ... }
 - Replaced all hardcoded `genie_demo.de_demo.<table>` references in SQL cells with unqualified names.
 - Changes committed to `dev`, `qas`, and `prd` branches independently.
 
-### 3.6 .gitattributes
+### 3.6 `.gitattributes`
 - Added `.gitattributes` to all 3 branches:
   ```
   conf/env.json merge=ours
