@@ -1,4 +1,21 @@
 # Databricks notebook source
+# DBTITLE 1,Environment Setup
+import json
+
+_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
+with open(_conf_path) as f:
+    _env = json.load(f)
+
+catalog     = _env["catalog"]
+schema      = _env["schema"]
+
+spark.sql(f"USE CATALOG `{catalog}`")
+spark.sql(f"USE SCHEMA `{schema}`")
+
+print(f"✓ Environment : {catalog}.{schema}")
+
+# COMMAND ----------
+
 # DBTITLE 1,Pipeline Validation: Medallion End-to-End
 # MAGIC %md
 # MAGIC # Pipeline Validation: Medallion End-to-End
@@ -17,11 +34,11 @@
 
 # DBTITLE 1,Informational: Layer Row Counts
 # MAGIC %sql
-# MAGIC SELECT 'bronze' AS layer, count(*) AS row_count FROM genie_demo.de_demo.bronze_sales_transactions
+# MAGIC SELECT 'bronze' AS layer, count(*) AS row_count FROM bronze_sales_transactions
 # MAGIC UNION ALL
-# MAGIC SELECT 'silver' AS layer, count(*) AS row_count FROM genie_demo.de_demo.silver_sales_transactions
+# MAGIC SELECT 'silver' AS layer, count(*) AS row_count FROM silver_sales_transactions
 # MAGIC UNION ALL
-# MAGIC SELECT 'gold'   AS layer, count(*) AS row_count FROM genie_demo.de_demo.gold_sales_summary;
+# MAGIC SELECT 'gold'   AS layer, count(*) AS row_count FROM gold_sales_summary;
 
 # COMMAND ----------
 
@@ -31,7 +48,7 @@
 # MAGIC   SUM(CASE WHEN order_id IS NULL THEN 1 ELSE 0 END) AS null_order_id,
 # MAGIC   SUM(CASE WHEN order_date IS NULL THEN 1 ELSE 0 END) AS null_order_date,
 # MAGIC   SUM(CASE WHEN net_amount IS NULL THEN 1 ELSE 0 END) AS null_net_amount
-# MAGIC FROM genie_demo.de_demo.silver_sales_transactions;
+# MAGIC FROM silver_sales_transactions;
 
 # COMMAND ----------
 
@@ -41,34 +58,34 @@
 # MAGIC   'silver_completed' AS source,
 # MAGIC   SUM(net_amount) AS total_net_revenue,
 # MAGIC   COUNT(*) AS transaction_count
-# MAGIC FROM genie_demo.de_demo.silver_sales_transactions
+# MAGIC FROM silver_sales_transactions
 # MAGIC WHERE order_status = 'COMPLETED'
 # MAGIC UNION ALL
 # MAGIC SELECT
 # MAGIC   'gold_aggregated' AS source,
 # MAGIC   SUM(total_net_revenue) AS total_net_revenue,
 # MAGIC   SUM(total_transactions) AS transaction_count
-# MAGIC FROM genie_demo.de_demo.gold_sales_summary;
+# MAGIC FROM gold_sales_summary;
 
 # COMMAND ----------
 
 # DBTITLE 1,Assertions: Fail Job if Checks Do Not Pass
-bronze_count = spark.sql("SELECT COUNT(*) FROM genie_demo.de_demo.bronze_sales_transactions").collect()[0][0]
-silver_count = spark.sql("SELECT COUNT(*) FROM genie_demo.de_demo.silver_sales_transactions").collect()[0][0]
-gold_count   = spark.sql("SELECT COUNT(*) FROM genie_demo.de_demo.gold_sales_summary").collect()[0][0]
+bronze_count = spark.sql("SELECT COUNT(*) FROM bronze_sales_transactions").collect()[0][0]
+silver_count = spark.sql("SELECT COUNT(*) FROM silver_sales_transactions").collect()[0][0]
+gold_count   = spark.sql("SELECT COUNT(*) FROM gold_sales_summary").collect()[0][0]
 
 null_count = spark.sql("""
   SELECT
     SUM(CASE WHEN order_id  IS NULL THEN 1 ELSE 0 END) +
     SUM(CASE WHEN order_date IS NULL THEN 1 ELSE 0 END) +
     SUM(CASE WHEN net_amount IS NULL THEN 1 ELSE 0 END) AS total_nulls
-  FROM genie_demo.de_demo.silver_sales_transactions
+  FROM silver_sales_transactions
 """).collect()[0][0]
 
 revenue_diff = spark.sql("""
   SELECT ABS(
-    (SELECT COALESCE(SUM(net_amount), 0)        FROM genie_demo.de_demo.silver_sales_transactions WHERE order_status = 'COMPLETED') -
-    (SELECT COALESCE(SUM(total_net_revenue), 0) FROM genie_demo.de_demo.gold_sales_summary)
+    (SELECT COALESCE(SUM(net_amount), 0)        FROM silver_sales_transactions WHERE order_status = 'COMPLETED') -
+    (SELECT COALESCE(SUM(total_net_revenue), 0) FROM gold_sales_summary)
   ) AS diff
 """).collect()[0][0]
 

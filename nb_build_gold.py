@@ -1,4 +1,21 @@
 # Databricks notebook source
+# DBTITLE 1,Environment Setup
+import json
+
+_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
+with open(_conf_path) as f:
+    _env = json.load(f)
+
+catalog     = _env["catalog"]
+schema      = _env["schema"]
+
+spark.sql(f"USE CATALOG `{catalog}`")
+spark.sql(f"USE SCHEMA `{schema}`")
+
+print(f"✓ Environment : {catalog}.{schema}")
+
+# COMMAND ----------
+
 # DBTITLE 1,Gold Layer: Sales Summary by Date, Region & Category
 # MAGIC %md
 # MAGIC # Gold Layer: Sales Summary by Date, Region & Category
@@ -27,7 +44,7 @@
 
 # DBTITLE 1,Create Gold Table
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE genie_demo.de_demo.gold_sales_summary
+# MAGIC CREATE OR REPLACE TABLE gold_sales_summary
 # MAGIC COMMENT 'Gold layer: daily sales summary by region and category. Only completed transactions included.'
 # MAGIC AS
 # MAGIC SELECT
@@ -39,19 +56,19 @@
 # MAGIC   SUM(gross_amount) AS total_gross_revenue,
 # MAGIC   SUM(net_amount) AS total_net_revenue,
 # MAGIC   ROUND(AVG(net_amount), 2) AS avg_transaction_value
-# MAGIC FROM genie_demo.de_demo.silver_sales_transactions
+# MAGIC FROM silver_sales_transactions
 # MAGIC WHERE order_status = 'COMPLETED'
 # MAGIC GROUP BY order_date, region, category;
 # MAGIC
 # MAGIC -- Column comments
-# MAGIC ALTER TABLE genie_demo.de_demo.gold_sales_summary ALTER COLUMN order_date COMMENT 'Transaction date';
-# MAGIC ALTER TABLE genie_demo.de_demo.gold_sales_summary ALTER COLUMN region COMMENT 'Geographic region: North, South, East, West, Central';
-# MAGIC ALTER TABLE genie_demo.de_demo.gold_sales_summary ALTER COLUMN category COMMENT 'Product category: Electronics, Clothing, Home & Kitchen, Sports, Books';
-# MAGIC ALTER TABLE genie_demo.de_demo.gold_sales_summary ALTER COLUMN total_transactions COMMENT 'Count of completed orders for this date/region/category';
-# MAGIC ALTER TABLE genie_demo.de_demo.gold_sales_summary ALTER COLUMN total_units_sold COMMENT 'Total quantity of items sold';
-# MAGIC ALTER TABLE genie_demo.de_demo.gold_sales_summary ALTER COLUMN total_gross_revenue COMMENT 'Total gross revenue (before discounts)';
-# MAGIC ALTER TABLE genie_demo.de_demo.gold_sales_summary ALTER COLUMN total_net_revenue COMMENT 'Total net revenue (after discounts)';
-# MAGIC ALTER TABLE genie_demo.de_demo.gold_sales_summary ALTER COLUMN avg_transaction_value COMMENT 'Average net revenue per transaction';
+# MAGIC ALTER TABLE gold_sales_summary ALTER COLUMN order_date COMMENT 'Transaction date';
+# MAGIC ALTER TABLE gold_sales_summary ALTER COLUMN region COMMENT 'Geographic region: North, South, East, West, Central';
+# MAGIC ALTER TABLE gold_sales_summary ALTER COLUMN category COMMENT 'Product category: Electronics, Clothing, Home & Kitchen, Sports, Books';
+# MAGIC ALTER TABLE gold_sales_summary ALTER COLUMN total_transactions COMMENT 'Count of completed orders for this date/region/category';
+# MAGIC ALTER TABLE gold_sales_summary ALTER COLUMN total_units_sold COMMENT 'Total quantity of items sold';
+# MAGIC ALTER TABLE gold_sales_summary ALTER COLUMN total_gross_revenue COMMENT 'Total gross revenue (before discounts)';
+# MAGIC ALTER TABLE gold_sales_summary ALTER COLUMN total_net_revenue COMMENT 'Total net revenue (after discounts)';
+# MAGIC ALTER TABLE gold_sales_summary ALTER COLUMN avg_transaction_value COMMENT 'Average net revenue per transaction';
 
 # COMMAND ----------
 
@@ -62,7 +79,7 @@
 # MAGIC   count(DISTINCT order_date) AS distinct_dates,
 # MAGIC   count(DISTINCT region) AS distinct_regions,
 # MAGIC   count(DISTINCT category) AS distinct_categories
-# MAGIC FROM genie_demo.de_demo.gold_sales_summary;
+# MAGIC FROM gold_sales_summary;
 
 # COMMAND ----------
 
@@ -73,7 +90,7 @@
 # MAGIC   SUM(net_amount) AS total_net_revenue,
 # MAGIC   SUM(gross_amount) AS total_gross_revenue,
 # MAGIC   COUNT(*) AS transaction_count
-# MAGIC FROM genie_demo.de_demo.silver_sales_transactions
+# MAGIC FROM silver_sales_transactions
 # MAGIC WHERE order_status = 'COMPLETED'
 # MAGIC
 # MAGIC UNION ALL
@@ -83,7 +100,7 @@
 # MAGIC   SUM(total_net_revenue) AS total_net_revenue,
 # MAGIC   SUM(total_gross_revenue) AS total_gross_revenue,
 # MAGIC   SUM(total_transactions) AS transaction_count
-# MAGIC FROM genie_demo.de_demo.gold_sales_summary;
+# MAGIC FROM gold_sales_summary;
 
 # COMMAND ----------
 
@@ -94,7 +111,7 @@
 # MAGIC   SUM(total_net_revenue) AS net_revenue,
 # MAGIC   SUM(total_transactions) AS transactions,
 # MAGIC   SUM(total_units_sold) AS units_sold
-# MAGIC FROM genie_demo.de_demo.gold_sales_summary
+# MAGIC FROM gold_sales_summary
 # MAGIC GROUP BY region
 # MAGIC ORDER BY net_revenue DESC;
 
@@ -107,7 +124,7 @@
 # MAGIC   SUM(total_net_revenue) AS net_revenue,
 # MAGIC   SUM(total_transactions) AS transactions,
 # MAGIC   SUM(total_units_sold) AS units_sold
-# MAGIC FROM genie_demo.de_demo.gold_sales_summary
+# MAGIC FROM gold_sales_summary
 # MAGIC GROUP BY category
 # MAGIC ORDER BY net_revenue DESC;
 
@@ -118,7 +135,7 @@
 # MAGIC -- Confirm gold only contains COMPLETED transactions
 # MAGIC -- This returns the excluded statuses and their counts from silver
 # MAGIC SELECT s.order_status, COUNT(*) AS excluded_count
-# MAGIC FROM genie_demo.de_demo.silver_sales_transactions s
+# MAGIC FROM silver_sales_transactions s
 # MAGIC WHERE s.order_status != 'COMPLETED'
 # MAGIC GROUP BY s.order_status
 # MAGIC ORDER BY excluded_count DESC;
