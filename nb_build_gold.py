@@ -42,6 +42,25 @@ print(f"✓ Environment : {catalog}.{schema}")
 
 # COMMAND ----------
 
+# DBTITLE 1,Environment Setup
+import json
+
+# Load environment config from conf/env.json (differs per Git branch)
+_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
+with open(_conf_path) as f:
+    _env = json.load(f)
+
+catalog     = _env["catalog"]
+schema      = _env["schema"]
+
+# Set default catalog and schema for all %sql cells in this notebook
+spark.sql(f"USE CATALOG `{catalog}`")
+spark.sql(f"USE SCHEMA `{schema}`")
+
+print(f"✓ Environment : {catalog}.{schema}")
+
+# COMMAND ----------
+
 # DBTITLE 1,Create Gold Table
 # MAGIC %sql
 # MAGIC CREATE OR REPLACE TABLE gold_sales_summary
