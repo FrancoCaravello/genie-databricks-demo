@@ -1,24 +1,4 @@
 # Databricks notebook source
-# DBTITLE 1,Environment Setup
-import json
-
-_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
-with open(_conf_path) as f:
-    _env = json.load(f)
-
-catalog     = _env["catalog"]
-schema      = _env["schema"]
-volume_path = _env["volume_path"]
-
-spark.sql(f"USE CATALOG `{catalog}`")
-spark.sql(f"USE SCHEMA `{schema}`")
-dbutils.widgets.text("volume_path", volume_path)
-
-print(f"✓ Environment : {catalog}.{schema}")
-print(f"✓ Volume path : {volume_path}")
-
-# COMMAND ----------
-
 # DBTITLE 1,Bronze Layer: Ingest Sales Transactions
 # MAGIC %md
 # MAGIC # Bronze Layer: Ingest Sales Transactions
@@ -34,21 +14,24 @@ print(f"✓ Volume path : {volume_path}")
 # DBTITLE 1,Environment Setup
 import json
 
-# Load environment config from conf/env.json (differs per Git branch)
-_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
-with open(_conf_path) as f:
-    _env = json.load(f)
+# Priority: (1) Job task base_parameters, (2) conf/env.json for interactive runs
+try:
+    catalog     = dbutils.widgets.get("catalog")
+    schema      = dbutils.widgets.get("schema")
+    volume_path = dbutils.widgets.get("volume_path")
+    if not catalog.strip():
+        raise ValueError("Empty parameter")
+except:
+    _conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
+    with open(_conf_path) as f:
+        _env = json.load(f)
+    catalog     = _env["catalog"]
+    schema      = _env["schema"]
+    volume_path = _env["volume_path"]
 
-catalog     = _env["catalog"]
-schema      = _env["schema"]
-volume_path = _env["volume_path"]
-
-# Set default catalog and schema for all %sql cells in this notebook
 spark.sql(f"USE CATALOG `{catalog}`")
 spark.sql(f"USE SCHEMA `{schema}`")
-
-# Expose volume_path as a widget for use in %sql cells
-dbutils.widgets.text("volume_path", volume_path)
+spark.sql(f"SET volume_path = '{volume_path}'")  # Resolved by ${{volume_path}} in %sql cells
 
 print(f"✓ Environment : {catalog}.{schema}")
 print(f"✓ Volume path : {volume_path}")

@@ -1,21 +1,4 @@
 # Databricks notebook source
-# DBTITLE 1,Environment Setup
-import json
-
-_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
-with open(_conf_path) as f:
-    _env = json.load(f)
-
-catalog     = _env["catalog"]
-schema      = _env["schema"]
-
-spark.sql(f"USE CATALOG `{catalog}`")
-spark.sql(f"USE SCHEMA `{schema}`")
-
-print(f"✓ Environment : {catalog}.{schema}")
-
-# COMMAND ----------
-
 # DBTITLE 1,Pipeline Validation: Medallion End-to-End
 # MAGIC %md
 # MAGIC # Pipeline Validation: Medallion End-to-End
@@ -35,15 +18,19 @@ print(f"✓ Environment : {catalog}.{schema}")
 # DBTITLE 1,Environment Setup
 import json
 
-# Load environment config from conf/env.json (differs per Git branch)
-_conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
-with open(_conf_path) as f:
-    _env = json.load(f)
+# Priority: (1) Job task base_parameters, (2) conf/env.json for interactive runs
+try:
+    catalog = dbutils.widgets.get("catalog")
+    schema  = dbutils.widgets.get("schema")
+    if not catalog.strip():
+        raise ValueError("Empty parameter")
+except:
+    _conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
+    with open(_conf_path) as f:
+        _env = json.load(f)
+    catalog = _env["catalog"]
+    schema  = _env["schema"]
 
-catalog     = _env["catalog"]
-schema      = _env["schema"]
-
-# Set default catalog and schema for all %sql cells in this notebook
 spark.sql(f"USE CATALOG `{catalog}`")
 spark.sql(f"USE SCHEMA `{schema}`")
 

@@ -41,7 +41,7 @@ This document describes every step taken to build the Genie Databricks Demo from
 - Path in workspace: `/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo`.
 
 ### 2.3 Notebooks versioned in Git
-- Created 4 notebooks in the Git folder:
+- Created 4 notebooks in the Git folder (originally at repo root, moved to `notebooks/` subfolder in Phase 4):
   - `nb_ingest_bronze` — bronze ingestion
   - `nb_transform_silver` — silver transformation
   - `nb_build_gold` — gold aggregation
@@ -56,7 +56,7 @@ This document describes every step taken to build the Genie Databricks Demo from
 - Compute: serverless.
 
 ### 2.5 Workspace organization
-- Moved original loose notebooks to `_scratch/` folder.
+- Moved original loose notebooks to `_scratch/` folder as reference copies.
 - Convention established: each project lives in its own Git folder at the workspace root.
 
 ---
@@ -98,7 +98,7 @@ prd:  { "catalog": "genie_demo_prd", ... }
 - Replaced all hardcoded `genie_demo.de_demo.<table>` references in SQL cells with unqualified names.
 - Changes committed to `dev`, `qas`, and `prd` branches independently.
 
-### 3.6 .gitattributes
+### 3.6 `.gitattributes`
 - Added `.gitattributes` to all 3 branches:
   ```
   conf/env.json merge=ours
@@ -128,13 +128,48 @@ Applied explicit grants for `franco.caravello@piconsulting.com.ar`:
 
 ---
 
+## Phase 4 — Workspace Reorganization
+
+### 4.1 Motivation
+- Notebooks were loose alongside documentation files at the root of the Git repo.
+- No clear separation between asset types in the workspace.
+
+### 4.2 Changes applied
+
+**Git repository (`dev` branch):**
+- Created `notebooks/` subfolder in the repo root.
+- Moved all 4 notebooks: `nb_ingest_bronze`, `nb_transform_silver`, `nb_build_gold`, `nb_validate` → `notebooks/`.
+- Committed and pushed to `dev`.
+
+**Workspace root:**
+- Deleted the 3 loose reference copies from `_scratch/` (no longer needed).
+- Created `dashboards/` folder and moved `Sales Medallion Demo Summary` dashboard into it.
+
+**Job update:**
+- Updated `genie_demo_medallion_dev` task paths from `nb_*` to `notebooks/nb_*`.
+- Jobs `genie_demo_medallion_qas` and `genie_demo_medallion_prd` keep the old paths until the reorganization is promoted to `qas` and `prd` branches via PR.
+
+### 4.3 Pending: propagate to qas and prd
+- Open a PR on GitHub: `dev → qas`, then `qas → prd`.
+- After merging, update the task paths in `genie_demo_medallion_qas` and `genie_demo_medallion_prd` jobs to `notebooks/nb_*`.
+- Note: `conf/env.json` will conflict due to `.gitattributes merge=ours` — resolve by keeping each branch's own version.
+
+---
+
 ## Current State Summary
 
 ### Workspace
 ```
 /Users/franco.caravello@piconsulting.com.ar/
-├── genie-databricks-demo/   ← Git folder (GitHub)
-└── _scratch/                ← pre-Git notebook versions (reference only)
+├── genie-databricks-demo/       ← Git folder (GitHub, current branch: dev)
+│   ├── notebooks/               ← nb_ingest_bronze, nb_transform_silver,
+│   │                               nb_build_gold, nb_validate
+│   ├── conf/                    ← env.json (per branch)
+│   ├── README.md
+│   ├── DEMO_GUIDE.md
+│   └── .gitattributes
+├── dashboards/                  ← Sales Medallion Demo Summary (Lakeview)
+└── _scratch/                    ← empty
 ```
 
 ### GitHub Repository
@@ -154,16 +189,18 @@ Branches: main, dev, qas, prd
 
 ### Lakeflow Jobs
 
-| Job ID | Name | Branch | Schedule |
-|--------|------|--------|----------|
-| 972837798198719 | `genie_demo_medallion_dev` | `dev` | Manual |
-| 631809223504978 | `genie_demo_medallion_qas` | `qas` | Daily 02:00 UTC |
-| 878443287805223 | `genie_demo_medallion_prd` | `prd` | Daily 06:00 UTC |
+| Job ID | Name | Branch | Schedule | Notebook paths |
+|--------|------|--------|----------|----------------|
+| 972837798198719 | `genie_demo_medallion_dev` | `dev` | Manual | `notebooks/nb_*` |
+| 631809223504978 | `genie_demo_medallion_qas` | `qas` | Daily 02:00 UTC | `nb_*` (pending update) |
+| 878443287805223 | `genie_demo_medallion_prd` | `prd` | Daily 06:00 UTC | `nb_*` (pending update) |
 
 ---
 
 ## Next Steps (not yet implemented)
 
+- [ ] Open PR `dev → qas`, then `qas → prd` to propagate notebook reorganization
+- [ ] Update `genie_demo_medallion_qas` and `genie_demo_medallion_prd` task paths to `notebooks/nb_*` after merging
 - [ ] Run DEV job end-to-end to validate parameterization works
 - [ ] Set up service principals with restricted MODIFY on QAS/PRD
 - [ ] Add GitHub branch protection rules on `qas` and `prd`
