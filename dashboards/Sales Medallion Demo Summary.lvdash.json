@@ -7,7 +7,7 @@
         "SELECT\n",
         "  *\n",
         "FROM\n",
-        "  genie_demo.de_demo.gold_sales_summary"
+        "  genie_demo_qas.de_demo.gold_sales_summary"
       ]
     }
   ],
@@ -22,7 +22,7 @@
             "multilineTextboxSpec": {
               "lines": [
                 "## Sales Medallion Demo Summary\n",
-                "Gold layer aggregation of completed transactions from `genie_demo.de_demo.gold_sales_summary`"
+                "Gold layer aggregation of completed transactions from `genie_demo_qas.de_demo.gold_sales_summary`"
               ]
             }
           },
