@@ -1,3 +1,7 @@
 # conf/env.json is intentionally different per branch.
 # Never auto-merge this file — always resolve manually by keeping the target branch version.
 conf/env.json merge=ours
+
+# The dashboard's dataset catalog reference is intentionally different per branch (dev/qas/prd).
+# Never auto-merge this file — always resolve manually by keeping the target branch version.
+dashboards/Sales Medallion Demo Summary.lvdash.json merge=ours
