@@ -31,7 +31,7 @@ except:
 
 spark.sql(f"USE CATALOG `{catalog}`")
 spark.sql(f"USE SCHEMA `{schema}`")
-spark.sql(f"SET volume_path = '{volume_path}'")  # Resolved by ${{volume_path}} in %sql cells
+dbutils.widgets.text("volume_path", volume_path)  # Ensure widget exists for ${volume_path} in %sql cells
 
 print(f"✓ Environment : {catalog}.{schema}")
 print(f"✓ Volume path : {volume_path}")
