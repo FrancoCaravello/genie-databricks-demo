@@ -1,0 +1,12 @@
+# Environment-specific configuration (differs per branch, not tracked)
+conf/env.json
+
+# Dashboard catalog references (environment-specific)
+dashboards/Sales Medallion Demo Summary.lvdash.json
+
+# IDE / OS
+.DS_Store
+*.pyc
+__pycache__/
+.idea/
+.vscode/

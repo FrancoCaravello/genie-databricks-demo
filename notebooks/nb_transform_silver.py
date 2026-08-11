@@ -23,20 +23,28 @@
 # COMMAND ----------
 
 # DBTITLE 1,Environment Setup
-import json
+import requests
 
-# Priority: (1) Job task base_parameters, (2) conf/env.json for interactive runs
+# Priority: (1) Job task base_parameters, (2) Auto-detect from git branch
 try:
     catalog = dbutils.widgets.get("catalog")
     schema  = dbutils.widgets.get("schema")
     if not catalog.strip():
         raise ValueError("Empty parameter")
 except:
-    _conf_path = "/Workspace/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo/conf/env.json"
-    with open(_conf_path) as f:
-        _env = json.load(f)
-    catalog = _env["catalog"]
-    schema  = _env["schema"]
+    # Auto-detect environment from current git branch
+    _ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
+    _host = _ctx.apiUrl().get()
+    _token = _ctx.apiToken().get()
+    _resp = requests.get(
+        f"{_host}/api/2.0/repos",
+        headers={"Authorization": f"Bearer {_token}"},
+        params={"path_prefix": "/Users/franco.caravello@piconsulting.com.ar/genie-databricks-demo"}
+    )
+    _branch = _resp.json()["repos"][0]["branch"]
+    _catalog_map = {"dev": "genie_demo_dev", "qas": "genie_demo_qas", "prd": "genie_demo_prd"}
+    catalog = _catalog_map.get(_branch, "genie_demo_dev")
+    schema  = "de_demo"
 
 spark.sql(f"USE CATALOG `{catalog}`")
 spark.sql(f"USE SCHEMA `{schema}`")
@@ -152,5 +160,6 @@ print(f"✓ Environment : {catalog}.{schema}")
 # MAGIC FROM silver_sales_transactions;
 
 # COMMAND ----------
+
 
 
