@@ -12,6 +12,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Environment Setup
+#comentario dummy
 import json
 
 # Priority: (1) Job task base_parameters, (2) conf/env.json for interactive runs
@@ -31,7 +32,6 @@ except:
 
 spark.sql(f"USE CATALOG `{catalog}`")
 spark.sql(f"USE SCHEMA `{schema}`")
-dbutils.widgets.text("volume_path", volume_path)  # Ensure widget exists for ${volume_path} in %sql cells
 
 print(f"✓ Environment : {catalog}.{schema}")
 print(f"✓ Volume path : {volume_path}")
@@ -39,35 +39,46 @@ print(f"✓ Volume path : {volume_path}")
 # COMMAND ----------
 
 # DBTITLE 1,Create Bronze Table
-# MAGIC %sql
-# MAGIC CREATE OR REPLACE TABLE bronze_sales_transactions
-# MAGIC COMMENT 'Bronze layer: raw sales transactions ingested from CSV. All columns preserved as strings with ingestion metadata.'
-# MAGIC AS
-# MAGIC SELECT
-# MAGIC   *,
-# MAGIC   _metadata.file_path AS _source_file_path,
-# MAGIC   current_timestamp() AS _ingested_at
-# MAGIC FROM read_files(
-# MAGIC   '${volume_path}/sales_transactions.csv',
-# MAGIC   format => 'csv',
-# MAGIC   header => true,
-# MAGIC   inferColumnTypes => false
-# MAGIC );
-# MAGIC
-# MAGIC -- Column comments
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN order_id COMMENT 'Raw order identifier from source CSV';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN order_date COMMENT 'Raw order date string (YYYY-MM-DD format, not yet cast to DATE)';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN customer_id COMMENT 'Raw customer identifier from source CSV';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN product_name COMMENT 'Product name as provided in the source file';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN category COMMENT 'Product category (Electronics, Clothing, Home & Kitchen, Sports, Books)';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN quantity COMMENT 'Raw quantity string (to be cast to INT at silver layer)';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN unit_price COMMENT 'Raw unit price string (to be cast to DECIMAL at silver layer)';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN discount_pct COMMENT 'Raw discount percentage string (0-30, to be cast to DECIMAL at silver layer)';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN payment_method COMMENT 'Payment method used (Credit Card, Debit Card, PayPal, Bank Transfer, Cash)';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN region COMMENT 'Geographic sales region (North, South, East, West, Central)';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN order_status COMMENT 'Order lifecycle status (Completed, Cancelled, Returned, Pending)';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN _source_file_path COMMENT 'Ingestion metadata: full path of the source file in the UC Volume';
-# MAGIC ALTER TABLE bronze_sales_transactions ALTER COLUMN _ingested_at COMMENT 'Ingestion metadata: timestamp when the row was loaded into the bronze table';
+# Note: volume_path is interpolated directly into the SQL string here instead of
+# using SQL variable substitution (SET var = ... / ${var}), which fails with
+# CONFIG_NOT_AVAILABLE on the current serverless compute.
+bronze_sql = f"""
+CREATE OR REPLACE TABLE bronze_sales_transactions
+COMMENT 'Bronze layer: raw sales transactions ingested from CSV. All columns preserved as strings with ingestion metadata.'
+AS
+SELECT
+  *,
+  _metadata.file_path AS _source_file_path,
+  current_timestamp() AS _ingested_at
+FROM read_files(
+  '{volume_path}/sales_transactions.csv',
+  format => 'csv',
+  header => true,
+  inferColumnTypes => false
+)
+"""
+spark.sql(bronze_sql)
+
+# Column comments
+column_comments = {
+    "order_id": "Raw order identifier from source CSV",
+    "order_date": "Raw order date string (YYYY-MM-DD format, not yet cast to DATE)",
+    "customer_id": "Raw customer identifier from source CSV",
+    "product_name": "Product name as provided in the source file",
+    "category": "Product category (Electronics, Clothing, Home & Kitchen, Sports, Books)",
+    "quantity": "Raw quantity string (to be cast to INT at silver layer)",
+    "unit_price": "Raw unit price string (to be cast to DECIMAL at silver layer)",
+    "discount_pct": "Raw discount percentage string (0-30, to be cast to DECIMAL at silver layer)",
+    "payment_method": "Payment method used (Credit Card, Debit Card, PayPal, Bank Transfer, Cash)",
+    "region": "Geographic sales region (North, South, East, West, Central)",
+    "order_status": "Order lifecycle status (Completed, Cancelled, Returned, Pending)",
+    "_source_file_path": "Ingestion metadata: full path of the source file in the UC Volume",
+    "_ingested_at": "Ingestion metadata: timestamp when the row was loaded into the bronze table",
+}
+for col, comment in column_comments.items():
+    spark.sql(f"ALTER TABLE bronze_sales_transactions ALTER COLUMN {col} COMMENT '{comment}'")
+
+print("✓ Bronze table created")
 
 # COMMAND ----------
 
